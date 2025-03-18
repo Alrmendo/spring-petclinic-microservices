@@ -1,6 +1,5 @@
 package org.springframework.samples.petclinic.customers.web;
 
-import java.util.Arrays;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
@@ -63,7 +62,6 @@ class PetResourceTest {
     @Test
     void shouldGetListOfPetsForOwner() throws Exception {
         Owner owner = new Owner();
-        owner.setId(2);
         Pet pet = setupPet(2, "Basil", 6);
         owner.addPet(pet);
 
@@ -87,7 +85,6 @@ class PetResourceTest {
     @Test
     void shouldGetMultiplePetsForOwner() throws Exception {
         Owner owner = new Owner();
-        owner.setId(3);
 
         Pet pet1 = setupPet(10, "Fluffy", 4);
         Pet pet2 = setupPet(11, "Rex", 5);
