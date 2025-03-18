@@ -38,8 +38,8 @@ pipeline {
                         if (CHANGED_FILES.contains(service)) {
                             echo "Building and testing ${service}..."
                             dir(service) {
-                                sh '../mvnw clean test'
-                                sh '../mvnw clean install -DskipTests'
+                                sh './mvnw clean test'
+                                sh './mvnw clean install -DskipTests'
                             }
                         } else {
                             echo "Skipping ${service}, no changes detected."
