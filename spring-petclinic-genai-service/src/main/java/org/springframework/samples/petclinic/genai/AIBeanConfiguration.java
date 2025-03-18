@@ -33,4 +33,5 @@ public class AIBeanConfiguration {
     public WebClient.Builder loadBalancedWebClientBuilder() {
         return WebClient.builder();
     }
+	// gen ai
 }
