@@ -28,11 +28,7 @@ pipeline {
             steps {
                 script {
                     def services = [
-                        'spring-petclinic-admin-server',
-                        'spring-petclinic-api-gateway',
-                        'spring-petclinic-config-server',
                         'spring-petclinic-customers-service',
-                        'spring-petclinic-discovery-server',
                         'spring-petclinic-genai-service',
                         'spring-petclinic-vets-service',
                         'spring-petclinic-visits-service'
