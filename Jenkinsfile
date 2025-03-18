@@ -1,9 +1,5 @@
 pipeline {
     agent any
-    environment {
-        CHANGED_FILES = ''
-        CHANGED_SERVICES = '' // Lưu danh sách các service bị thay đổi
-    }
 
     stages {
         stage('Checkout Code') {
@@ -16,76 +12,169 @@ pipeline {
                 }
             }
         }
-
-        stage('Detect changes') {
-            steps {
-                script {
-                    env.CHANGED_FILES = sh(script: "git diff --name-only HEAD~1", returnStdout: true).trim()
-                    echo "Changed files:\n${env.CHANGED_FILES}"
-                }
-            }
-        }
-
-        stage('Test Changed Services') {
-            steps {
-                script {
-                    def services = [
-                        'spring-petclinic-customers-service',
-                        'spring-petclinic-genai-service',
-                        'spring-petclinic-vets-service',
-                        'spring-petclinic-visits-service'
-                    ]
-                    def changedServices = []
-
-                    if (env.CHANGED_FILES && env.CHANGED_FILES.trim()) {
-                        def changedFilesList = env.CHANGED_FILES.split('\n')
-                        for (service in services) {
-                            if (changedFilesList.find { it.startsWith(service) }) {
-                                echo "Running tests for ${service}..."
-                                changedServices.add(service)
-                                dir(service) {
-                                    // Chạy unit test
-                                    sh './mvnw clean test'
-                                }
-                            } else {
-                                echo "Skipping test for ${service}, no changes detected."
-                            }
-                        }
-                    } else {
-                        echo "No changed files detected. Skipping test phase."
+        
+        stage('Test Services') {
+            parallel {
+                stage('Test - Customers Service') {
+                    when {
+                        changeset pattern: 'spring-petclinic-customers-service/**', comparator: 'ANT'
                     }
-                    env.CHANGED_SERVICES = changedServices.join(' ')
+                    steps {
+                        echo "Running tests for Customers Service..."
+                        dir('spring-petclinic-customers-service') {
+                            sh './mvnw clean test'
+                        }
+                    }
+                    post {
+                        always {
+                            echo "Publishing test results for Customers Service..."
+                            dir('spring-petclinic-customers-service') {
+                                junit '*/target/surefire-reports/.xml'
+                                jacoco(
+                                    execPattern: '**/target/jacoco.exec',
+                                    classPattern: '**/target/classes',
+                                    sourcePattern: '**/src/main/java'
+                                )
+                                archiveArtifacts artifacts: '*/surefire-reports/.xml', fingerprint: true
+                            }
+                        }
+                    }
                 }
-            }
-            post {
-                always {
-                    echo "Publishing test results and code coverage..."
-                    junit allowEmptyResults: true, testResults: '*/target/surefire-reports/.xml'
-                    jacoco(
-                        execPattern: '**/target/jacoco.exec',
-                        classPattern: '**/target/classes',
-                        sourcePattern: '**/src/main/java',
-                        skipIfNoReports: true
-                    )
-                    archiveArtifacts artifacts: '*/surefire-reports/.xml', fingerprint: true
+                
+                stage('Test - Genai Service') {
+                    when {
+                        changeset pattern: 'spring-petclinic-genai-service/**', comparator: 'ANT'
+                    }
+                    steps {
+                        echo "Running tests for Genai Service..."
+                        dir('spring-petclinic-genai-service') {
+                            sh './mvnw clean test'
+                        }
+                    }
+                    post {
+                        always {
+                            echo "Publishing test results for Genai Service..."
+                            dir('spring-petclinic-genai-service') {
+                                junit '*/target/surefire-reports/.xml'
+                                jacoco(
+                                    execPattern: '**/target/jacoco.exec',
+                                    classPattern: '**/target/classes',
+                                    sourcePattern: '**/src/main/java'
+                                )
+                                archiveArtifacts artifacts: '*/surefire-reports/.xml', fingerprint: true
+                            }
+                        }
+                    }
+                }
+                
+                stage('Test - Vets Service') {
+                    when {
+                        changeset pattern: 'spring-petclinic-vets-service/**', comparator: 'ANT'
+                    }
+                    steps {
+                        echo "Running tests for Vets Service..."
+                        dir('spring-petclinic-vets-service') {
+                            sh './mvnw clean test'
+                        }
+                    }
+                    post {
+                        always {
+                            echo "Publishing test results for Vets Service..."
+                            dir('spring-petclinic-vets-service') {
+                                junit '*/target/surefire-reports/.xml'
+                                jacoco(
+                                    execPattern: '**/target/jacoco.exec',
+                                    classPattern: '**/target/classes',
+                                    sourcePattern: '**/src/main/java'
+                                )
+                                archiveArtifacts artifacts: '*/surefire-reports/.xml', fingerprint: true
+                            }
+                        }
+                    }
+                }
+                
+                stage('Test - Visits Service') {
+                    when {
+                        changeset pattern: 'spring-petclinic-visits-service/**', comparator: 'ANT'
+                    }
+                    steps {
+                        echo "Running tests for Visits Service..."
+                        dir('spring-petclinic-visits-service') {
+                            sh './mvnw clean test'
+                        }
+                    }
+                    post {
+                        always {
+                            echo "Publishing test results for Visits Service..."
+                            dir('spring-petclinic-visits-service') {
+                                junit '*/target/surefire-reports/.xml'
+                                jacoco(
+                                    execPattern: '**/target/jacoco.exec',
+                                    classPattern: '**/target/classes',
+                                    sourcePattern: '**/src/main/java'
+                                )
+                                archiveArtifacts artifacts: '*/surefire-reports/.xml', fingerprint: true
+                            }
+                        }
+                    }
                 }
             }
         }
-
-        stage('Build Changed Services') {
+        
+        stage('Debug') {
             steps {
-                script {
-                    if (env.CHANGED_SERVICES && env.CHANGED_SERVICES.trim()) {
-                        def services = env.CHANGED_SERVICES.split(' ')
-                        for (service in services) {
-                            echo "Building ${service}..."
-                            dir(service) {
-                                // Build lại service, bỏ qua test vì đã chạy ở phase Test
-                                sh './mvnw clean install -DskipTests'
-                            }
+                echo "Checking test report files..."
+                sh 'find . -name "*.xml"'
+            }
+        }
+        
+        stage('Build Services') {
+            parallel {
+                stage('Build - Customers Service') {
+                    when {
+                        changeset pattern: 'spring-petclinic-customers-service/**', comparator: 'ANT'
+                    }
+                    steps {
+                        echo "Building Customers Service..."
+                        dir('spring-petclinic-customers-service') {
+                            sh './mvnw clean install -DskipTests'
                         }
-                    } else {
-                        echo "No services to build."
+                    }
+                }
+                
+                stage('Build - Genai Service') {
+                    when {
+                        changeset pattern: 'spring-petclinic-genai-service/**', comparator: 'ANT'
+                    }
+                    steps {
+                        echo "Building Genai Service..."
+                        dir('spring-petclinic-genai-service') {
+                            sh './mvnw clean install -DskipTests'
+                        }
+                    }
+                }
+                
+                stage('Build - Vets Service') {
+                    when {
+                        changeset pattern: 'spring-petclinic-vets-service/**', comparator: 'ANT'
+                    }
+                    steps {
+                        echo "Building Vets Service..."
+                        dir('spring-petclinic-vets-service') {
+                            sh './mvnw clean install -DskipTests'
+                        }
+                    }
+                }
+                
+                stage('Build - Visits Service') {
+                    when {
+                        changeset pattern: 'spring-petclinic-visits-service/**', comparator: 'ANT'
+                    }
+                    steps {
+                        echo "Building Visits Service..."
+                        dir('spring-petclinic-visits-service') {
+                            sh './mvnw clean install -DskipTests'
+                        }
                     }
                 }
             }
@@ -102,16 +191,17 @@ pipeline {
                     httpMode: 'POST',
                     contentType: 'APPLICATION_JSON',
                     requestBody: """{
-                        \"state\": \"success\",
-                        \"description\": \"Build passed\",
-                        \"context\": \"ci/jenkins-pipeline\",
-                        \"target_url\": \"${env.BUILD_URL}\"
+                        "state": "success",
+                        "description": "Build passed",
+                        "context": "ci/jenkins-pipeline",
+                        "target_url": "${env.BUILD_URL}"
                     }""",
                     authentication: 'github-token'
                 )
                 echo "GitHub Response: ${response.status}"
             }
         }
+
         failure {
             script {
                 def commitId = env.GIT_COMMIT
@@ -121,16 +211,17 @@ pipeline {
                     httpMode: 'POST',
                     contentType: 'APPLICATION_JSON',
                     requestBody: """{
-                        \"state\": \"failure\",
-                        \"description\": \"Build failed\",
-                        \"context\": \"ci/jenkins-pipeline\",
-                        \"target_url\": \"${env.BUILD_URL}\"
+                        "state": "failure",
+                        "description": "Build failed",
+                        "context": "ci/jenkins-pipeline",
+                        "target_url": "${env.BUILD_URL}"
                     }""",
                     authentication: 'github-token'
                 )
                 echo "GitHub Response: ${response.status}"
             }
         }
+
         always {
             echo "Pipeline finished."
         }
