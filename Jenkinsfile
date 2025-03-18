@@ -1,6 +1,8 @@
 pipeline {
     agent any
-
+    environment {
+        CHANGED_FILES = ''
+    }
     stages {
         stage('Checkout Code') {
             steps {
@@ -13,37 +15,40 @@ pipeline {
             }
         }
 
-        stage('Test') {
+        stage('Detect changes') {
             steps {
-                echo "Running tests..."
-                sh './mvnw clean test'
-            }
-            post {
-                always {
-                    echo "Publishing test results..."
-                    junit '**/target/surefire-reports/*.xml'
-                    jacoco(
-                        execPattern: '**/target/jacoco.exec',
-                        classPattern: '**/target/classes',
-                        sourcePattern: '**/src/main/java'
-                    )
-                    archiveArtifacts artifacts: '**/surefire-reports/*.xml', fingerprint: true
+                script {
+                    CHANGED_FILES = sh(script: "git diff --name-only HEAD~1", returnStdout: true).trim()
+                    echo "Changed files:\n${CHANGED_FILES}"
                 }
             }
         }
 
-        stage('Debug') {
-            steps {
-                echo "Checking test report files..."
-                sh 'find . -name "*.xml"'
-            }
-        }
-
-        stage('Build') {
+        stage('Test & Build Changed Services') {
             steps {
                 script {
-                    echo "Performing regular build..."
-                    sh './mvnw clean install -DskipTests'
+                    def services = [
+                        'spring-petclinic-admin-server',
+                        'spring-petclinic-api-gateway',
+                        'spring-petclinic-config-server',
+                        'spring-petclinic-customers-service',
+                        'spring-petclinic-discovery-server',
+                        'spring-petclinic-genai-service',
+                        'spring-petclinic-vets-service',
+                        'spring-petclinic-visits-service'
+                    ]
+
+                    for (service in services) {
+                        if (CHANGED_FILES.contains(service)) {
+                            echo "Building and testing ${service}..."
+                            dir(service) {
+                                sh '../mvnw clean test'
+                                sh '../mvnw clean install -DskipTests'
+                            }
+                        } else {
+                            echo "Skipping ${service}, no changes detected."
+                        }
+                    }
                 }
             }
         }
@@ -59,10 +64,10 @@ pipeline {
                     httpMode: 'POST',
                     contentType: 'APPLICATION_JSON',
                     requestBody: """{
-                        "state": "success",
-                        "description": "Build passed",
-                        "context": "ci/jenkins-pipeline",
-                        "target_url": "${env.BUILD_URL}"
+                        \"state\": \"success\",
+                        \"description\": \"Build passed\",
+                        \"context\": \"ci/jenkins-pipeline\",
+                        \"target_url\": \"${env.BUILD_URL}\"
                     }""",
                     authentication: 'github-token'
                 )
@@ -79,10 +84,10 @@ pipeline {
                     httpMode: 'POST',
                     contentType: 'APPLICATION_JSON',
                     requestBody: """{
-                        "state": "failure",
-                        "description": "Build failed",
-                        "context": "ci/jenkins-pipeline",
-                        "target_url": "${env.BUILD_URL}"
+                        \"state\": \"failure\",
+                        \"description\": \"Build failed\",
+                        \"context\": \"ci/jenkins-pipeline\",
+                        \"target_url\": \"${env.BUILD_URL}\"
                     }""",
                     authentication: 'github-token'
                 )
