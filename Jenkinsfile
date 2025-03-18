@@ -1,0 +1,97 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                script {
+                    def branchToCheckout = env.BRANCH_NAME ?: 'main'
+                    echo "Checkout branch: ${branchToCheckout}"
+                    git branch: branchToCheckout, 
+                        url: 'https://github.com/Alrmendo/spring-petclinic-microservices.git'
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                echo "Running tests..."
+                sh './mvnw clean test'
+            }
+            post {
+                always {
+                    echo "Publishing test results..."
+                    junit '**/target/surefire-reports/*.xml'
+                    jacoco(
+                        execPattern: '**/target/jacoco.exec',
+                        classPattern: '**/target/classes',
+                        sourcePattern: '**/src/main/java'
+                    )
+                    archiveArtifacts artifacts: '**/surefire-reports/*.xml', fingerprint: true
+                }
+            }
+        }
+
+        stage('Debug') {
+            steps {
+                echo "Checking test report files..."
+                sh 'find . -name "*.xml"'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                script {
+                    echo "Performing regular build..."
+                    sh './mvnw clean install -DskipTests'
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            script {
+                def commitId = env.GIT_COMMIT
+                echo "Sending 'success' status to GitHub for commit: ${commitId}"
+                def response = httpRequest(
+                    url: "https://api.github.com/repos/Alrmendo/spring-petclinic-microservices.git/statuses/${commitId}",
+                    httpMode: 'POST',
+                    contentType: 'APPLICATION_JSON',
+                    requestBody: """{
+                        "state": "success",
+                        "description": "Build passed",
+                        "context": "ci/jenkins-pipeline",
+                        "target_url": "${env.BUILD_URL}"
+                    }""",
+                    authentication: '22127427'
+                )
+                echo "GitHub Response: ${response.status}"
+            }
+        }
+
+        failure {
+            script {
+                def commitId = env.GIT_COMMIT
+                echo "Sending 'failure' status to GitHub for commit: ${commitId}"
+                def response = httpRequest(
+                    url: "https://api.github.com/repos/Alrmendo/spring-petclinic-microservices.git/statuses/${commitId}",
+                    httpMode: 'POST',
+                    contentType: 'APPLICATION_JSON',
+                    requestBody: """{
+                        "state": "failure",
+                        "description": "Build failed",
+                        "context": "ci/jenkins-pipeline",
+                        "target_url": "${env.BUILD_URL}"
+                    }""",
+                    authentication: '22127427'
+                )
+                echo "GitHub Response: ${response.status}"
+            }
+        }
+
+        always {
+            echo "Pipeline finished."
+        }
+    }
+}
