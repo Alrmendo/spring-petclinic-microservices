@@ -55,7 +55,7 @@ pipeline {
                 def commitId = env.GIT_COMMIT
                 echo "Sending 'success' status to GitHub for commit: ${commitId}"
                 def response = httpRequest(
-                    url: "https://api.github.com/repos/Alrmendo/spring-petclinic-microservices.git/statuses/${commitId}",
+                    url: "https://api.github.com/repos/Alrmendo/spring-petclinic-microservices/statuses/${commitId}",
                     httpMode: 'POST',
                     contentType: 'APPLICATION_JSON',
                     requestBody: """{
@@ -75,7 +75,7 @@ pipeline {
                 def commitId = env.GIT_COMMIT
                 echo "Sending 'failure' status to GitHub for commit: ${commitId}"
                 def response = httpRequest(
-                    url: "https://api.github.com/repos/Alrmendo/spring-petclinic-microservices.git/statuses/${commitId}",
+                    url: "https://api.github.com/repos/Alrmendo/spring-petclinic-microservices/statuses/${commitId}",
                     httpMode: 'POST',
                     contentType: 'APPLICATION_JSON',
                     requestBody: """{
