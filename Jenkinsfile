@@ -35,7 +35,7 @@ pipeline {
                     ]
 
                     for (service in services) {
-                        if (CHANGED_FILES.contains(service)) {
+                        if (CHANGED_FILES.split('\n').find { it.startsWith(service) }) {
                             echo "Building and testing ${service}..."
                             dir(service) {
                                 sh './mvnw clean test'
@@ -45,15 +45,6 @@ pipeline {
                             echo "Skipping ${service}, no changes detected."
                         }
                     }
-                }
-            }
-        }
-
-        stage('Check Changed Files') {
-            steps {
-                script {
-                    def changedFiles = sh(script: "git diff --name-only HEAD~1", returnStdout: true).trim()
-                    echo "Files changed in this commit: ${changedFiles}"
                 }
             }
         }
