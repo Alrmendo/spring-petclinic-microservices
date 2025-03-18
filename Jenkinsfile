@@ -12,127 +12,123 @@ pipeline {
                 }
             }
         }
-        
+
+        stage('Detect Changes') {
+            steps {
+                script {
+                    echo "Detecting changes in source code..."
+                    def changedFiles = sh(script: 'git diff --name-only HEAD~1', returnStdout: true).trim()
+                    echo "Changed files:\n${changedFiles}"
+                    env.CHANGED_FILES = changedFiles
+                }
+            }
+        }
+
         stage('Test Services') {
             parallel {
                 stage('Test - Customers Service') {
                     when {
-                        changeset pattern: 'spring-petclinic-customers-service/**', comparator: 'ANT'
+                        expression { env.CHANGED_FILES.contains('spring-petclinic-customers-service/') }
                     }
                     steps {
                         echo "Running tests for Customers Service..."
                         dir('spring-petclinic-customers-service') {
-                            sh './mvnw clean test'
+                            sh './mvnw clean test -X'
                         }
                     }
                     post {
                         always {
                             echo "Publishing test results for Customers Service..."
                             dir('spring-petclinic-customers-service') {
-                                junit '*/target/surefire-reports/.xml'
+                                junit '**/target/surefire-reports/*.xml'
                                 jacoco(
                                     execPattern: '**/target/jacoco.exec',
                                     classPattern: '**/target/classes',
                                     sourcePattern: '**/src/main/java'
                                 )
-                                archiveArtifacts artifacts: '*/surefire-reports/.xml', fingerprint: true
+                                archiveArtifacts artifacts: '**/target/surefire-reports/*.xml', fingerprint: true
                             }
                         }
                     }
                 }
-                
+
                 stage('Test - Genai Service') {
                     when {
-                        changeset pattern: 'spring-petclinic-genai-service/**', comparator: 'ANT'
+                        expression { env.CHANGED_FILES.contains('spring-petclinic-genai-service/') }
                     }
                     steps {
                         echo "Running tests for Genai Service..."
                         dir('spring-petclinic-genai-service') {
-                            sh './mvnw clean test'
+                            sh './mvnw clean test -X'
                         }
                     }
                     post {
                         always {
                             echo "Publishing test results for Genai Service..."
                             dir('spring-petclinic-genai-service') {
-                                junit '*/target/surefire-reports/.xml'
-                                jacoco(
-                                    execPattern: '**/target/jacoco.exec',
-                                    classPattern: '**/target/classes',
-                                    sourcePattern: '**/src/main/java'
-                                )
-                                archiveArtifacts artifacts: '*/surefire-reports/.xml', fingerprint: true
+                                junit '**/target/surefire-reports/*.xml'
+                                archiveArtifacts artifacts: '**/target/surefire-reports/*.xml', fingerprint: true
                             }
                         }
                     }
                 }
-                
+
                 stage('Test - Vets Service') {
                     when {
-                        changeset pattern: 'spring-petclinic-vets-service/**', comparator: 'ANT'
+                        expression { env.CHANGED_FILES.contains('spring-petclinic-vets-service/') }
                     }
                     steps {
                         echo "Running tests for Vets Service..."
                         dir('spring-petclinic-vets-service') {
-                            sh './mvnw clean test'
+                            sh './mvnw clean test -X'
                         }
                     }
                     post {
                         always {
                             echo "Publishing test results for Vets Service..."
                             dir('spring-petclinic-vets-service') {
-                                junit '*/target/surefire-reports/.xml'
-                                jacoco(
-                                    execPattern: '**/target/jacoco.exec',
-                                    classPattern: '**/target/classes',
-                                    sourcePattern: '**/src/main/java'
-                                )
-                                archiveArtifacts artifacts: '*/surefire-reports/.xml', fingerprint: true
+                                junit '**/target/surefire-reports/*.xml'
+                                archiveArtifacts artifacts: '**/target/surefire-reports/*.xml', fingerprint: true
                             }
                         }
                     }
                 }
-                
+
                 stage('Test - Visits Service') {
                     when {
-                        changeset pattern: 'spring-petclinic-visits-service/**', comparator: 'ANT'
+                        expression { env.CHANGED_FILES.contains('spring-petclinic-visits-service/') }
                     }
                     steps {
                         echo "Running tests for Visits Service..."
                         dir('spring-petclinic-visits-service') {
-                            sh './mvnw clean test'
+                            sh './mvnw clean test -X'
                         }
                     }
                     post {
                         always {
                             echo "Publishing test results for Visits Service..."
                             dir('spring-petclinic-visits-service') {
-                                junit '*/target/surefire-reports/.xml'
-                                jacoco(
-                                    execPattern: '**/target/jacoco.exec',
-                                    classPattern: '**/target/classes',
-                                    sourcePattern: '**/src/main/java'
-                                )
-                                archiveArtifacts artifacts: '*/surefire-reports/.xml', fingerprint: true
+                                junit '**/target/surefire-reports/*.xml'
+                                archiveArtifacts artifacts: '**/target/surefire-reports/*.xml', fingerprint: true
                             }
                         }
                     }
                 }
             }
         }
-        
+
         stage('Debug') {
             steps {
                 echo "Checking test report files..."
                 sh 'find . -name "*.xml"'
             }
         }
-        
+
         stage('Build Services') {
             parallel {
                 stage('Build - Customers Service') {
                     when {
-                        changeset pattern: 'spring-petclinic-customers-service/**', comparator: 'ANT'
+                        expression { env.CHANGED_FILES.contains('spring-petclinic-customers-service/') }
                     }
                     steps {
                         echo "Building Customers Service..."
@@ -141,10 +137,10 @@ pipeline {
                         }
                     }
                 }
-                
+
                 stage('Build - Genai Service') {
                     when {
-                        changeset pattern: 'spring-petclinic-genai-service/**', comparator: 'ANT'
+                        expression { env.CHANGED_FILES.contains('spring-petclinic-genai-service/') }
                     }
                     steps {
                         echo "Building Genai Service..."
@@ -153,10 +149,10 @@ pipeline {
                         }
                     }
                 }
-                
+
                 stage('Build - Vets Service') {
                     when {
-                        changeset pattern: 'spring-petclinic-vets-service/**', comparator: 'ANT'
+                        expression { env.CHANGED_FILES.contains('spring-petclinic-vets-service/') }
                     }
                     steps {
                         echo "Building Vets Service..."
@@ -165,10 +161,10 @@ pipeline {
                         }
                     }
                 }
-                
+
                 stage('Build - Visits Service') {
                     when {
-                        changeset pattern: 'spring-petclinic-visits-service/**', comparator: 'ANT'
+                        expression { env.CHANGED_FILES.contains('spring-petclinic-visits-service/') }
                     }
                     steps {
                         echo "Building Visits Service..."
