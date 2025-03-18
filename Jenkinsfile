@@ -48,6 +48,15 @@ pipeline {
                 }
             }
         }
+
+        stage('Check Changed Files') {
+            steps {
+                script {
+                    def changedFiles = sh(script: "git diff --name-only HEAD~1", returnStdout: true).trim()
+                    echo "Files changed in this commit: ${changedFiles}"
+                }
+            }
+        }
     }
 
     post {
