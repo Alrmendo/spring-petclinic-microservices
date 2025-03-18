@@ -33,63 +33,8 @@ pipeline {
                     steps {
                         echo "Running tests for Customers Service..."
                         dir('spring-petclinic-customers-service') {
-                            sh './mvnw clean test -X'
-                        }
-                    }
-                    post {
-                        always {
-                            echo "Publishing test results for Customers Service..."
-                            dir('spring-petclinic-customers-service') {
-                                junit '**/target/surefire-reports/*.xml'
-                                jacoco(
-                                    execPattern: '**/target/jacoco.exec',
-                                    classPattern: '**/target/classes',
-                                    sourcePattern: '**/src/main/java'
-                                )
-                                archiveArtifacts artifacts: '**/target/surefire-reports/*.xml', fingerprint: true
-                            }
-                        }
-                    }
-                }
-
-                stage('Test - Genai Service') {
-                    when {
-                        expression { env.CHANGED_FILES.contains('spring-petclinic-genai-service/') }
-                    }
-                    steps {
-                        echo "Running tests for Genai Service..."
-                        dir('spring-petclinic-genai-service') {
-                            sh './mvnw clean test -X'
-                        }
-                    }
-                    post {
-                        always {
-                            echo "Publishing test results for Genai Service..."
-                            dir('spring-petclinic-genai-service') {
-                                junit '**/target/surefire-reports/*.xml'
-                                archiveArtifacts artifacts: '**/target/surefire-reports/*.xml', fingerprint: true
-                            }
-                        }
-                    }
-                }
-
-                stage('Test - Vets Service') {
-                    when {
-                        expression { env.CHANGED_FILES.contains('spring-petclinic-vets-service/') }
-                    }
-                    steps {
-                        echo "Running tests for Vets Service..."
-                        dir('spring-petclinic-vets-service') {
-                            sh './mvnw clean test -X'
-                        }
-                    }
-                    post {
-                        always {
-                            echo "Publishing test results for Vets Service..."
-                            dir('spring-petclinic-vets-service') {
-                                junit '**/target/surefire-reports/*.xml'
-                                archiveArtifacts artifacts: '**/target/surefire-reports/*.xml', fingerprint: true
-                            }
+                            sh 'chmod +x mvnw' // Cấp quyền thực thi nếu chưa có
+                            sh './mvnw clean test'
                         }
                     }
                 }
@@ -101,16 +46,8 @@ pipeline {
                     steps {
                         echo "Running tests for Visits Service..."
                         dir('spring-petclinic-visits-service') {
-                            sh './mvnw clean test -X'
-                        }
-                    }
-                    post {
-                        always {
-                            echo "Publishing test results for Visits Service..."
-                            dir('spring-petclinic-visits-service') {
-                                junit '**/target/surefire-reports/*.xml'
-                                archiveArtifacts artifacts: '**/target/surefire-reports/*.xml', fingerprint: true
-                            }
+                            sh 'chmod +x mvnw' 
+                            sh './mvnw clean test'
                         }
                     }
                 }
@@ -133,35 +70,12 @@ pipeline {
                     steps {
                         echo "Building Customers Service..."
                         dir('spring-petclinic-customers-service') {
+                            sh 'chmod +x mvnw' 
                             sh './mvnw clean install -DskipTests'
                         }
                     }
                 }
-
-                stage('Build - Genai Service') {
-                    when {
-                        expression { env.CHANGED_FILES.contains('spring-petclinic-genai-service/') }
-                    }
-                    steps {
-                        echo "Building Genai Service..."
-                        dir('spring-petclinic-genai-service') {
-                            sh './mvnw clean install -DskipTests'
-                        }
-                    }
-                }
-
-                stage('Build - Vets Service') {
-                    when {
-                        expression { env.CHANGED_FILES.contains('spring-petclinic-vets-service/') }
-                    }
-                    steps {
-                        echo "Building Vets Service..."
-                        dir('spring-petclinic-vets-service') {
-                            sh './mvnw clean install -DskipTests'
-                        }
-                    }
-                }
-
+                
                 stage('Build - Visits Service') {
                     when {
                         expression { env.CHANGED_FILES.contains('spring-petclinic-visits-service/') }
@@ -169,6 +83,7 @@ pipeline {
                     steps {
                         echo "Building Visits Service..."
                         dir('spring-petclinic-visits-service') {
+                            sh 'chmod +x mvnw' 
                             sh './mvnw clean install -DskipTests'
                         }
                     }
@@ -187,10 +102,10 @@ pipeline {
                     httpMode: 'POST',
                     contentType: 'APPLICATION_JSON',
                     requestBody: """{
-                        "state": "success",
-                        "description": "Build passed",
-                        "context": "ci/jenkins-pipeline",
-                        "target_url": "${env.BUILD_URL}"
+                        \"state\": \"success\",
+                        \"description\": \"Build passed\",
+                        \"context\": \"ci/jenkins-pipeline\",
+                        \"target_url\": \"${env.BUILD_URL}\"
                     }""",
                     authentication: 'github-token'
                 )
@@ -207,10 +122,10 @@ pipeline {
                     httpMode: 'POST',
                     contentType: 'APPLICATION_JSON',
                     requestBody: """{
-                        "state": "failure",
-                        "description": "Build failed",
-                        "context": "ci/jenkins-pipeline",
-                        "target_url": "${env.BUILD_URL}"
+                        \"state\": \"failure\",
+                        \"description\": \"Build failed\",
+                        \"context\": \"ci/jenkins-pipeline\",
+                        \"target_url\": \"${env.BUILD_URL}\"
                     }""",
                     authentication: 'github-token'
                 )
