@@ -18,8 +18,8 @@ pipeline {
         stage('Detect changes') {
             steps {
                 script {
-                    CHANGED_FILES = sh(script: "git diff --name-only HEAD~1", returnStdout: true).trim()
-                    echo "Changed files:\n${CHANGED_FILES}"
+                    env.CHANGED_FILES = sh(script: "git diff --name-only HEAD~1", returnStdout: true).trim()
+                    echo "Changed files:\n${env.CHANGED_FILES}"
                 }
             }
         }
@@ -35,7 +35,7 @@ pipeline {
                     ]
 
                     for (service in services) {
-                        if (CHANGED_FILES.split('\n').find { it.startsWith(service) }) {
+                        if (env.CHANGED_FILES.split('\n').find { it.startsWith(service) }) {
                             echo "Building and testing ${service}..."
                             dir(service) {
                                 sh './mvnw clean test'
